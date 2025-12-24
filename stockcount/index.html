@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Master v4.0</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        /* === 1. GLOBAL STYLES === */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f0f2f5; margin: 0; padding: 10px; 
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+        }
+
+        .card { 
+            background: white; width: 100%; max-width: 500px; padding: 15px; 
+            border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            margin-bottom: 15px; box-sizing: border-box; 
+        }
+
+        h3 { margin: 0 0 10px 0; text-align: center; color: #333; }
+
+        /* === 2. SCANNER UI === */
+        #reader { 
+            width: 100%; border-radius: 12px; overflow: hidden; background: #000; 
+            min-height: 0; display: none; margin-bottom: 10px; position: relative;
+        }
+        .scanner-active { display: block !important; }
+        
+        /* Flash Overlay */
+        #flash-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 255, 0, 0.4); z-index: 9999; 
+            pointer-events: none; opacity: 0; transition: opacity 0.1s;
+        }
+
+        /* Zoom Slider Container */
+        #zoom-container {
+            display: none; width: 100%; margin-bottom: 15px; padding: 0 10px; box-sizing: border-box;
+        }
+        input[type=range] { width: 100%; }
+        .zoom-label { text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 5px; }
+
+        /* Feedback Text */
+        #last-scanned {
+            text-align: center; font-size: 1.3rem; font-weight: 800; color: #ccc;
+            margin: 5px 0 15px 0; min-height: 1.5rem; letter-spacing: 0.5px;
+        }
+
+        /* === 3. BUTTONS & INPUTS === */
+        button { 
+            padding: 14px; font-size: 1rem; border: none; border-radius: 8px; 
+            cursor: pointer; font-weight: 600; color: white; width: 100%; 
+            touch-action: manipulation; transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.97); }
+        
+        .btn-scan { background-color: #2196F3; }
+        .btn-stop { background-color: #546E7A; display: none; }
+        
+        /* Torch Button */
+        .btn-torch { 
+            background-color: #FF9800; display: none; margin-left: 10px; width: auto; min-width: 100px;
+        }
+
+        .btn-add { background-color: #4CAF50; font-size: 1.2rem; margin-top: 15px; }
+        .btn-export { background-color: #00796B; margin-top: 15px; }
+
+        .row { display: flex; gap: 10px; margin-bottom: 10px; }
+        input[type="text"], input[type="number"] { 
+            width: 100%; padding: 12px; font-size: 1.1rem; border: 2px solid #eee; 
+            border-radius: 8px; text-align: center; 
+        }
+        input:focus { border-color: #2196F3; outline: none; }
+        
+        .tap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 5px; }
+        .tap-btn { background: #f5f5f5; color: #333; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #eee;}
+
+        /* === 4. DATA TABLE === */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
+        th { text-align: left; background: #fafafa; padding: 12px 8px; border-bottom: 2px solid #eee; color: #666; }
+        td { padding: 12px 8px; border-bottom: 1px solid #f0f0f0; }
+        .low-stock { color: #E65100; font-weight: bold; } 
+        .good-stock { color: #2E7D32; font-weight: bold; } 
+        .del-btn { background: none; color: #ef5350; padding: 5px 10px; width: auto; font-size: 1.2rem; }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="flash-overlay"></div>
+
+    <div class="card">
+        <h3>⚡ Stock Scanner</h3>
+        
+        <div id="reader"></div>
+
+        <div id="zoom-container">
+            <div class="zoom-label">Zoom Level</div>
+            <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="applyZoom(this.value)">
+        </div>
+        
+        <div class="controls">
+            <button id="scanBtn" class="btn-scan" onclick="startScanner()">📸 Camera ON</button>
+            <button id="stopBtn" class="btn-stop" onclick="stopScanner()">⏹ OFF</button>
+            <button id="torchBtn" class="btn-torch" onclick="toggleTorch()">🔦 Torch</button>
+        </div>
+
+        <div id="last-scanned">Ready.</div>
+
+        <div class="row">
+            <input type="text" id="productId" placeholder="Code" autocomplete="off" enterkeyhint="next">
+            <input type="number" id="qty" value="1" style="width: 90px;" enterkeyhint="done">
+        </div>
+
+        <div class="tap-grid">
+            <button class="tap-btn" onclick="adjQty(1)">+1</button>
+            <button class="tap-btn" onclick="adjQty(5)">+5</button>
+            <button class="tap-btn" onclick="adjQty(10)">+10</button>
+            <button class="tap-btn" onclick="adjQty(-1)">-1</button>
+        </div>
+
+        <button class="btn-add" onclick="addItem()">⬇️ ADD TO LIST</button>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">List (<span id="count">0</span>)</h3>
+            <button onclick="clearList()" style="width:auto; background:none; color:#d32f2f; font-size:0.9rem;">Clear All</button>
+        </div>
+        
+        <table>
+            <thead><tr><th>Item</th><th>Qty</th><th></th></tr></thead>
+            <tbody id="listBody"></tbody>
+        </table>
+
+        <button class="btn-export" onclick="exportToExcel()">📤 Export Excel (.csv)</button>
+    </div>
+
+    <script>
+        // === 1. INITIALIZATION ===
+        let inventoryList = JSON.parse(localStorage.getItem('stockData')) || [];
+        let html5QrcodeScanner;
+        let isTorchOn = false;
+        let wakeLock = null;
+        let currentZoom = 1.0;
+
+        renderList();
+
+        document.getElementById("productId").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") document.getElementById("qty").focus();
+        });
+        document.getElementById("qty").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") addItem();
+        });
+
+        // === 2. SCANNER LOGIC ===
+        async function startScanner() {
+            if ('wakeLock' in navigator) {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            }
+
+            document.getElementById('reader').classList.add('scanner-active');
+            document.getElementById('scanBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            // CONFIG UPDATE: Request High Resolution + Wide Box
+            const config = { 
+                fps: 15, 
+                qrbox: { width: 320, height: 150 }, // Larger box
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 }, // Force HD
+                    height: { min: 480, ideal: 720, max: 1080 } 
+                }
+            };
+
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+            .then(() => {
+                // Check Capabilities (Zoom & Torch)
+                const caps = html5QrcodeScanner.getRunningTrackCameraCapabilities();
+                
+                // 1. Enable Torch Button if supported
+                if (caps && caps.torchFeature().isSupported()) {
+                    document.getElementById('torchBtn').style.display = 'block';
+                }
+
+                // 2. Enable Zoom Slider if supported
+                if (caps && caps.zoomFeature().isSupported()) {
+                    const zoomCap = caps.zoomFeature();
+                    const slider = document.getElementById('zoomSlider');
+                    const container = document.getElementById('zoom-container');
+                    
+                    slider.min = zoomCap.min;
+                    slider.max = zoomCap.max;
+                    slider.step = zoomCap.step;
+                    slider.value = zoomCap.min; // Start at 1x
+                    
+                    container.style.display = "block"; // Show the slider
+                }
+            })
+            .catch(err => {
+                alert("Camera Error: " + err);
+                stopScanner();
+            });
+        }
+
+        // Apply Zoom when slider moves
+        function applyZoom(val) {
+            if(!html5QrcodeScanner) return;
+            html5QrcodeScanner.applyVideoConstraints({
+                advanced: [{ zoom: parseFloat(val) }]
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            let currentVal = document.getElementById('productId').value;
+            if(currentVal === decodedText) return; 
+
+            document.getElementById('productId').value = decodedText;
+            document.getElementById('last-scanned').innerText = decodedText;
+            document.getElementById('last-scanned').style.color = "#333";
+            playBeep();
+            triggerFlash();
+            if (navigator.vibrate) navigator.vibrate(200);
+        }
+
+        function stopScanner() {
+            if(html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    document.getElementById('reader').classList.remove('scanner-active');
+                    document.getElementById('scanBtn').style.display = 'block';
+                    document.getElementById('stopBtn').style.display = 'none';
+                    document.getElementById('torchBtn').style.display = 'none';
+                    document.getElementById('zoom-container').style.display = 'none'; // Hide zoom
+                    if(wakeLock) wakeLock.release();
+                    isTorchOn = false;
+                });
+            }
+        }
+
+        function toggleTorch() {
+            if(!html5QrcodeScanner) return;
+            isTorchOn = !isTorchOn;
+            html5QrcodeScanner.applyVideoConstraints({
+                advanced: [{ torch: isTorchOn }]
+            });
+            const btn = document.getElementById('torchBtn');
+            btn.style.backgroundColor = isTorchOn ? "#E65100" : "#FF9800";
+        }
+
+        // === 3. LIST & EXPORT LOGIC (UNCHANGED) ===
+        function addItem() {
+            const idInput = document.getElementById('productId');
+            const qtyInput = document.getElementById('qty');
+            const id = idInput.value.trim();
+            const q = qtyInput.value;
+            if(!id || q == 0) return;
+
+            const existingIndex = inventoryList.findIndex(item => item.id === id);
+            if (existingIndex > -1) {
+                inventoryList[existingIndex].qty = parseInt(inventoryList[existingIndex].qty) + parseInt(q);
+            } else {
+                inventoryList.push({ id: id, qty: parseInt(q), time: new Date().toLocaleTimeString() });
+            }
+
+            document.getElementById('last-scanned').innerText = "✅ Added: " + id;
+            document.getElementById('last-scanned').style.color = "green";
+            idInput.value = ""; qtyInput.value = "1"; idInput.focus();
+            saveAndRender();
+        }
+
+        function deleteItem(index) {
+            const realIndex = inventoryList.length - 1 - index;
+            inventoryList.splice(realIndex, 1);
+            saveAndRender();
+        }
+
+        function clearList() {
+            if(inventoryList.length === 0) return;
+            if(confirm("Delete everything?")) { inventoryList = []; saveAndRender(); }
+        }
+
+        function saveAndRender() { localStorage.setItem('stockData', JSON.stringify(inventoryList)); renderList(); }
+
+        function renderList() {
+            const tbody = document.getElementById('listBody');
+            document.getElementById('count').innerText = inventoryList.length;
+            tbody.innerHTML = "";
+            inventoryList.slice().reverse().forEach((item, index) => {
+                let colorClass = (item.qty < 5) ? "low-stock" : "good-stock";
+                let row = `<tr>
+                    <td><strong>${item.id}</strong><br><small style="color:#999">${item.time}</small></td>
+                    <td class="${colorClass}">${item.qty}</td>
+                    <td style="text-align:right;"><button class="del-btn" onclick="deleteItem(${index})">×</button></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function exportToExcel() {
+            if(inventoryList.length === 0) return alert("List is empty!");
+            const btn = document.querySelector('.btn-export');
+            btn.innerText = "⏳ Saving...";
+            setTimeout(() => {
+                try {
+                    let csvContent = "Item Code,Quantity,Time Scanned\n";
+                    csvContent += inventoryList.map(e => `${e.id},${e.qty},${e.time}`).join("\n");
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", `Stock_Count_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                } catch(e) { alert("Error: " + e); }
+                btn.innerText = "📤 Export Excel (.csv)";
+            }, 100);
+        }
+
+        function adjQty(n) {
+            let el = document.getElementById('qty');
+            let val = parseInt(el.value) + n;
+            if(val < 1) val = 1; el.value = val;
+        }
+
+        function playBeep() {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 880; osc.type = "square"; gain.gain.value = 0.1;
+            osc.start(); setTimeout(() => osc.stop(), 100);
+        }
+
+        function triggerFlash() {
+            const flash = document.getElementById('flash-overlay');
+            flash.style.opacity = '1'; setTimeout(() => flash.style.opacity = '0', 200);
+        }
+    </script>
+</body>
+</html>
