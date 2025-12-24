@@ -3,113 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock Master v4.0</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StockPro">
+    <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAACQCAMAAADQmBKKAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAhFBMVEUAAAAzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDMzmDN+Xy6dAAAALnRSTlMAxu93u0o1+vb08/Lz8u7t7Ovq6eXj4uHg397d29jV1M/My8rIxMHAv726tK+sU8qO5wAAAAFiS0dEAIgFHUgAAAAJcEhZcwAAFiUAABYlAUlSJPAAAADXSURBVHja7dfrDsMgDATgKUuB0tJ9/1ct0iZtU/eLIPFf+DywYzsqCAAAAAAAAAAAAAAAAAAAAAB4z259H+4157P6vK0Z32fOuS9rxtm411qLtW4112Y91/rY0t69T+3s3u8D+9jDPrf3Z8817Wn/+9z3fR/4xCc+8YlPfOITn/jEJz7xiU984hOf+MQnPs390u/S59L30u/S99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99L30vfS99I/9w0G6x4k+1wL1gAAAABJRU5ErkJggg==">
+    
+    <title>StockPro App</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     
     <style>
-        /* === 1. GLOBAL STYLES === */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f0f2f5; margin: 0; padding: 10px; 
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-        }
-
-        .card { 
-            background: white; width: 100%; max-width: 500px; padding: 15px; 
-            border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-            margin-bottom: 15px; box-sizing: border-box; 
-        }
-
+        /* Base Styles */
+        body { font-family: -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background-color: #f0f2f5; margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        .card { background: white; width: 100%; max-width: 500px; padding: 15px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 15px; box-sizing: border-box; }
         h3 { margin: 0 0 10px 0; text-align: center; color: #333; }
 
-        /* === 2. SCANNER UI === */
-        #reader { 
-            width: 100%; border-radius: 12px; overflow: hidden; background: #000; 
-            min-height: 0; display: none; margin-bottom: 10px; position: relative;
-        }
+        /* Scanner */
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 0; display: none; margin-bottom: 10px; }
         .scanner-active { display: block !important; }
         
-        /* Flash Overlay */
-        #flash-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 255, 0, 0.4); z-index: 9999; 
-            pointer-events: none; opacity: 0; transition: opacity 0.1s;
-        }
-
-        /* Zoom Slider Container */
-        #zoom-container {
-            display: none; width: 100%; margin-bottom: 15px; padding: 0 10px; box-sizing: border-box;
-        }
+        /* Zoom & Torch */
+        #zoom-container { display: none; width: 100%; margin-bottom: 15px; padding: 0 5px; box-sizing: border-box; }
         input[type=range] { width: 100%; }
-        .zoom-label { text-align: center; font-size: 0.8rem; color: #666; margin-bottom: 5px; }
-
-        /* Feedback Text */
-        #last-scanned {
-            text-align: center; font-size: 1.3rem; font-weight: 800; color: #ccc;
-            margin: 5px 0 15px 0; min-height: 1.5rem; letter-spacing: 0.5px;
-        }
-
-        /* === 3. BUTTONS & INPUTS === */
-        button { 
-            padding: 14px; font-size: 1rem; border: none; border-radius: 8px; 
-            cursor: pointer; font-weight: 600; color: white; width: 100%; 
-            touch-action: manipulation; transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.97); }
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
         
+        button { padding: 14px; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; color: white; width: 100%; transition: transform 0.1s; }
+        button:active { transform: scale(0.97); }
         .btn-scan { background-color: #2196F3; }
         .btn-stop { background-color: #546E7A; display: none; }
-        
-        /* Torch Button */
-        .btn-torch { 
-            background-color: #FF9800; display: none; margin-left: 10px; width: auto; min-width: 100px;
-        }
-
+        .btn-torch { background-color: #FF9800; display: none; margin-left: 10px; width: auto; min-width: 80px; }
         .btn-add { background-color: #4CAF50; font-size: 1.2rem; margin-top: 15px; }
         .btn-export { background-color: #00796B; margin-top: 15px; }
 
+        /* Inputs */
         .row { display: flex; gap: 10px; margin-bottom: 10px; }
-        input[type="text"], input[type="number"] { 
-            width: 100%; padding: 12px; font-size: 1.1rem; border: 2px solid #eee; 
-            border-radius: 8px; text-align: center; 
-        }
+        input[type="text"], input[type="number"] { width: 100%; padding: 12px; font-size: 1.1rem; border: 2px solid #eee; border-radius: 8px; text-align: center; }
         input:focus { border-color: #2196F3; outline: none; }
         
+        /* Grid & Table */
         .tap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 5px; }
-        .tap-btn { background: #f5f5f5; color: #333; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #eee;}
-
-        /* === 4. DATA TABLE === */
+        .tap-btn { background: #f5f5f5; color: #333; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
         th { text-align: left; background: #fafafa; padding: 12px 8px; border-bottom: 2px solid #eee; color: #666; }
         td { padding: 12px 8px; border-bottom: 1px solid #f0f0f0; }
-        .low-stock { color: #E65100; font-weight: bold; } 
-        .good-stock { color: #2E7D32; font-weight: bold; } 
+        .low-stock { color: #E65100; font-weight: bold; }
         .del-btn { background: none; color: #ef5350; padding: 5px 10px; width: auto; font-size: 1.2rem; }
 
-        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        /* Install Prompt Styles */
+        #ios-install-prompt { display: none; background: #333; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 0.9rem; text-align: center; }
+        #android-install-btn { display: none; background: #333; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-    <div id="flash-overlay"></div>
+    <div id="ios-install-prompt">
+        📲 <strong>Install App:</strong> Tap the Share button <span style="font-size:1.2rem">⎋</span> below, then select <strong>"Add to Home Screen"</strong> ➕
+    </div>
+    <button id="android-install-btn" onclick="installApp()">📲 Install App to Home Screen</button>
 
     <div class="card">
-        <h3>⚡ Stock Scanner</h3>
+        <h3>⚡ StockPro App</h3>
         
         <div id="reader"></div>
 
         <div id="zoom-container">
-            <div class="zoom-label">Zoom Level</div>
+            <div style="text-align:center; font-size:0.8rem; color:#888; margin-bottom:4px;">Zoom</div>
             <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1" oninput="applyZoom(this.value)">
         </div>
         
         <div class="controls">
             <button id="scanBtn" class="btn-scan" onclick="startScanner()">📸 Camera ON</button>
             <button id="stopBtn" class="btn-stop" onclick="stopScanner()">⏹ OFF</button>
-            <button id="torchBtn" class="btn-torch" onclick="toggleTorch()">🔦 Torch</button>
+            <button id="torchBtn" class="btn-torch" onclick="toggleTorch()">🔦</button>
         </div>
 
-        <div id="last-scanned">Ready.</div>
+        <div id="last-scanned" style="text-align: center; font-size: 1.3rem; font-weight: 800; color: #ccc; margin: 10px 0;">Ready.</div>
 
         <div class="row">
             <input type="text" id="productId" placeholder="Code" autocomplete="off" enterkeyhint="next">
@@ -129,218 +98,174 @@
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3 style="margin:0;">List (<span id="count">0</span>)</h3>
-            <button onclick="clearList()" style="width:auto; background:none; color:#d32f2f; font-size:0.9rem;">Clear All</button>
+            <button onclick="clearList()" style="width:auto; background:none; color:#d32f2f;">Clear</button>
         </div>
-        
         <table>
-            <thead><tr><th>Item</th><th>Qty</th><th></th></tr></thead>
             <tbody id="listBody"></tbody>
         </table>
-
-        <button class="btn-export" onclick="exportToExcel()">📤 Export Excel (.csv)</button>
+        <button class="btn-export" onclick="exportToExcel()">📤 Export CSV</button>
     </div>
 
     <script>
-        // === 1. INITIALIZATION ===
+        // === PWA LOGIC ===
+        // 1. Register Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Service Worker Registered'));
+        }
+
+        // 2. Android Install Logic
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('android-install-btn').style.display = 'block';
+        });
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    deferredPrompt = null;
+                    document.getElementById('android-install-btn').style.display = 'none';
+                }
+            }
+        }
+
+        // 3. iOS Detection
+        const isIos = /iphone|ipad|ipod/.test( window.navigator.userAgent.toLowerCase() );
+        const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+        
+        if (isIos && !isInStandaloneMode) {
+            document.getElementById('ios-install-prompt').style.display = 'block';
+        }
+
+        // === APP LOGIC ===
         let inventoryList = JSON.parse(localStorage.getItem('stockData')) || [];
         let html5QrcodeScanner;
         let isTorchOn = false;
         let wakeLock = null;
-        let currentZoom = 1.0;
 
         renderList();
+        
+        // Input Listeners
+        document.getElementById("productId").addEventListener("keypress", e => { if (e.key === "Enter") document.getElementById("qty").focus(); });
+        document.getElementById("qty").addEventListener("keypress", e => { if (e.key === "Enter") addItem(); });
 
-        document.getElementById("productId").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") document.getElementById("qty").focus();
-        });
-        document.getElementById("qty").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") addItem();
-        });
-
-        // === 2. SCANNER LOGIC ===
         async function startScanner() {
-            if ('wakeLock' in navigator) {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-            }
-
+            if ('wakeLock' in navigator) try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+            
             document.getElementById('reader').classList.add('scanner-active');
             document.getElementById('scanBtn').style.display = 'none';
             document.getElementById('stopBtn').style.display = 'block';
-            
+
             html5QrcodeScanner = new Html5Qrcode("reader");
             
-            // CONFIG UPDATE: Request High Resolution + Wide Box
             const config = { 
-                fps: 15, 
-                qrbox: { width: 320, height: 150 }, // Larger box
-                aspectRatio: 1.0,
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { min: 640, ideal: 1280, max: 1920 }, // Force HD
-                    height: { min: 480, ideal: 720, max: 1080 } 
-                }
+                fps: 15, qrbox: { width: 300, height: 120 }, aspectRatio: 1.0,
+                videoConstraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
             };
 
             html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
             .then(() => {
-                // Check Capabilities (Zoom & Torch)
                 const caps = html5QrcodeScanner.getRunningTrackCameraCapabilities();
-                
-                // 1. Enable Torch Button if supported
-                if (caps && caps.torchFeature().isSupported()) {
-                    document.getElementById('torchBtn').style.display = 'block';
-                }
-
-                // 2. Enable Zoom Slider if supported
+                if (caps && caps.torchFeature().isSupported()) document.getElementById('torchBtn').style.display = 'block';
                 if (caps && caps.zoomFeature().isSupported()) {
-                    const zoomCap = caps.zoomFeature();
+                    const z = caps.zoomFeature();
                     const slider = document.getElementById('zoomSlider');
-                    const container = document.getElementById('zoom-container');
-                    
-                    slider.min = zoomCap.min;
-                    slider.max = zoomCap.max;
-                    slider.step = zoomCap.step;
-                    slider.value = zoomCap.min; // Start at 1x
-                    
-                    container.style.display = "block"; // Show the slider
+                    slider.min = z.min; slider.max = z.max; slider.step = z.step; slider.value = z.min;
+                    document.getElementById('zoom-container').style.display = 'block';
                 }
             })
-            .catch(err => {
-                alert("Camera Error: " + err);
-                stopScanner();
-            });
+            .catch(err => { alert("Camera Error: " + err); stopScanner(); });
         }
 
-        // Apply Zoom when slider moves
-        function applyZoom(val) {
-            if(!html5QrcodeScanner) return;
-            html5QrcodeScanner.applyVideoConstraints({
-                advanced: [{ zoom: parseFloat(val) }]
-            });
-        }
-
+        function applyZoom(val) { if(html5QrcodeScanner) html5QrcodeScanner.applyVideoConstraints({ advanced: [{ zoom: parseFloat(val) }] }); }
+        
         function onScanSuccess(decodedText) {
-            let currentVal = document.getElementById('productId').value;
-            if(currentVal === decodedText) return; 
-
+            if(document.getElementById('productId').value === decodedText) return;
             document.getElementById('productId').value = decodedText;
-            document.getElementById('last-scanned').innerText = decodedText;
-            document.getElementById('last-scanned').style.color = "#333";
+            const feedback = document.getElementById('last-scanned');
+            feedback.innerText = decodedText; feedback.style.color = "#333";
             playBeep();
-            triggerFlash();
             if (navigator.vibrate) navigator.vibrate(200);
         }
 
         function stopScanner() {
-            if(html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    document.getElementById('reader').classList.remove('scanner-active');
-                    document.getElementById('scanBtn').style.display = 'block';
-                    document.getElementById('stopBtn').style.display = 'none';
-                    document.getElementById('torchBtn').style.display = 'none';
-                    document.getElementById('zoom-container').style.display = 'none'; // Hide zoom
-                    if(wakeLock) wakeLock.release();
-                    isTorchOn = false;
-                });
-            }
+            if(html5QrcodeScanner) html5QrcodeScanner.stop().then(() => {
+                document.getElementById('reader').classList.remove('scanner-active');
+                document.getElementById('scanBtn').style.display = 'block';
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('torchBtn').style.display = 'none';
+                document.getElementById('zoom-container').style.display = 'none';
+                if(wakeLock) wakeLock.release();
+            });
         }
 
         function toggleTorch() {
             if(!html5QrcodeScanner) return;
             isTorchOn = !isTorchOn;
-            html5QrcodeScanner.applyVideoConstraints({
-                advanced: [{ torch: isTorchOn }]
-            });
-            const btn = document.getElementById('torchBtn');
-            btn.style.backgroundColor = isTorchOn ? "#E65100" : "#FF9800";
+            html5QrcodeScanner.applyVideoConstraints({ advanced: [{ torch: isTorchOn }] });
+            document.getElementById('torchBtn').style.backgroundColor = isTorchOn ? "#E65100" : "#FF9800";
         }
 
-        // === 3. LIST & EXPORT LOGIC (UNCHANGED) ===
         function addItem() {
-            const idInput = document.getElementById('productId');
-            const qtyInput = document.getElementById('qty');
-            const id = idInput.value.trim();
-            const q = qtyInput.value;
-            if(!id || q == 0) return;
-
-            const existingIndex = inventoryList.findIndex(item => item.id === id);
-            if (existingIndex > -1) {
-                inventoryList[existingIndex].qty = parseInt(inventoryList[existingIndex].qty) + parseInt(q);
-            } else {
-                inventoryList.push({ id: id, qty: parseInt(q), time: new Date().toLocaleTimeString() });
-            }
+            const id = document.getElementById('productId').value.trim();
+            const q = document.getElementById('qty').value;
+            if(!id || q==0) return;
+            
+            const idx = inventoryList.findIndex(i => i.id === id);
+            if(idx > -1) inventoryList[idx].qty = parseInt(inventoryList[idx].qty) + parseInt(q);
+            else inventoryList.push({ id: id, qty: parseInt(q), time: new Date().toLocaleTimeString() });
 
             document.getElementById('last-scanned').innerText = "✅ Added: " + id;
             document.getElementById('last-scanned').style.color = "green";
-            idInput.value = ""; qtyInput.value = "1"; idInput.focus();
+            document.getElementById('productId').value = ""; document.getElementById('qty').value = "1";
+            document.getElementById('productId').focus();
             saveAndRender();
         }
 
-        function deleteItem(index) {
-            const realIndex = inventoryList.length - 1 - index;
-            inventoryList.splice(realIndex, 1);
-            saveAndRender();
-        }
-
-        function clearList() {
-            if(inventoryList.length === 0) return;
-            if(confirm("Delete everything?")) { inventoryList = []; saveAndRender(); }
-        }
-
+        function deleteItem(idx) { inventoryList.splice(inventoryList.length - 1 - idx, 1); saveAndRender(); }
+        function clearList() { if(confirm("Clear All?")) { inventoryList=[]; saveAndRender(); } }
         function saveAndRender() { localStorage.setItem('stockData', JSON.stringify(inventoryList)); renderList(); }
+        function adjQty(n) { const el=document.getElementById('qty'); let v=parseInt(el.value)+n; if(v<1)v=1; el.value=v; }
 
         function renderList() {
             const tbody = document.getElementById('listBody');
             document.getElementById('count').innerText = inventoryList.length;
             tbody.innerHTML = "";
             inventoryList.slice().reverse().forEach((item, index) => {
-                let colorClass = (item.qty < 5) ? "low-stock" : "good-stock";
-                let row = `<tr>
+                let colorClass = (item.qty < 5) ? "low-stock" : "";
+                tbody.innerHTML += `<tr>
                     <td><strong>${item.id}</strong><br><small style="color:#999">${item.time}</small></td>
                     <td class="${colorClass}">${item.qty}</td>
                     <td style="text-align:right;"><button class="del-btn" onclick="deleteItem(${index})">×</button></td>
                 </tr>`;
-                tbody.innerHTML += row;
             });
         }
 
         function exportToExcel() {
-            if(inventoryList.length === 0) return alert("List is empty!");
+            if(inventoryList.length===0) return alert("Empty List");
             const btn = document.querySelector('.btn-export');
             btn.innerText = "⏳ Saving...";
             setTimeout(() => {
-                try {
-                    let csvContent = "Item Code,Quantity,Time Scanned\n";
-                    csvContent += inventoryList.map(e => `${e.id},${e.qty},${e.time}`).join("\n");
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", `Stock_Count_${new Date().toISOString().slice(0,10)}.csv`);
-                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                } catch(e) { alert("Error: " + e); }
-                btn.innerText = "📤 Export Excel (.csv)";
+                let csv = "Item Code,Quantity,Time\n" + inventoryList.map(i => `${i.id},${i.qty},${i.time}`).join("\n");
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `Stock_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                btn.innerText = "📤 Export CSV";
             }, 100);
-        }
-
-        function adjQty(n) {
-            let el = document.getElementById('qty');
-            let val = parseInt(el.value) + n;
-            if(val < 1) val = 1; el.value = val;
         }
 
         function playBeep() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.frequency.value = 880; osc.type = "square"; gain.gain.value = 0.1;
             osc.start(); setTimeout(() => osc.stop(), 100);
-        }
-
-        function triggerFlash() {
-            const flash = document.getElementById('flash-overlay');
-            flash.style.opacity = '1'; setTimeout(() => flash.style.opacity = '0', 200);
         }
     </script>
 </body>
